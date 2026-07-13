@@ -147,6 +147,13 @@
     font-family:'Nunito', sans-serif; transition: background 0.2s, color 0.2s;
   }
   .notif-toggle.on{ background: var(--curacau); color:#fff; }
+  .nav-link-btn{
+    border:none; background: var(--mirtilo); color:#fff; font-weight:800; font-size:12px;
+    cursor:pointer; padding:7px 14px; border-radius:100px; margin-top:12px; margin-left:10px;
+    font-family:'Nunito', sans-serif; text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .nav-link-btn:hover{ background: var(--mirtilo-deep); transform: translateY(-2px); }
   .legend-panel{
     display:none;
     grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
@@ -315,8 +322,12 @@
   /* ---------- KANBAN ---------- */
   .kanban-board{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 4px; }
   @media (max-width: 980px){ .kanban-board{ grid-template-columns: 1fr; } }
-  .kanban-col{ background: var(--bg); border-radius: var(--radius-md); padding:14px; display:flex; flex-direction:column; min-height: 460px; }
-  .kanban-col-header{ display:flex; align-items:center; gap:8px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14.5px; margin-bottom:12px; padding:0 2px; }
+  .kanban-col{ background: var(--bg); border-radius: var(--radius-md); padding:14px; display:flex; flex-direction:column; min-height: 460px; transition: opacity 0.15s, transform 0.15s; }
+  .kanban-col.col-dragging{ opacity:0.4; }
+  .kanban-col.col-drag-over{ outline: 2px dashed var(--mirtilo); outline-offset: -4px; background: rgba(76,63,122,0.06); }
+  .kanban-col-header{ display:flex; align-items:center; gap:8px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14.5px; margin-bottom:12px; padding:0 2px; cursor:grab; }
+  .kanban-col-header:active{ cursor:grabbing; }
+  .kanban-drag-handle{ color: var(--slate); font-size:14px; flex-shrink:0; }
   .kanban-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .kanban-dot.red{ background: var(--crit-red); }
   .kanban-dot.yellow{ background: var(--warn); }
@@ -366,23 +377,33 @@
   .checklist-toggle-icon{ font-size:9px; }
   .checklist-body{ margin-top:6px; padding-top:6px; border-top:1px dashed var(--slate-soft); }
   .subtask-list{ margin-bottom:4px; }
-  .subtask-item{ display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .subtask-item{ display:flex; align-items:flex-start; gap:8px; padding:4px 0; }
   .subtask-checkbox{
     width:15px; height:15px; border-radius:5px; border:2px solid var(--slate);
     cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:#fff;
-    transition: all 0.15s;
+    transition: all 0.15s; margin-top:2px;
   }
   .subtask-checkbox.checked{ background: var(--good); border-color: var(--good); }
   .subtask-checkbox svg{ width:8px; height:8px; opacity:0; transition:opacity 0.15s; }
   .subtask-checkbox.checked svg{ opacity:1; }
-  .subtask-text{ font-size:12px; font-weight:600; flex:1; word-break:break-word; }
+  .subtask-main{ flex:1; min-width:0; }
+  .subtask-text{ font-size:12px; font-weight:600; word-break:break-word; }
   .subtask-text.done{ text-decoration: line-through; color: var(--ink-soft); }
-  .subtask-del{ border:none; background:none; color:var(--ink-soft); opacity:0.35; font-size:11px; cursor:pointer; flex-shrink:0; }
-  .subtask-item:hover .subtask-del{ opacity:1; }
+  .subtask-desc{ font-size:10.5px; color: var(--ink-soft); font-weight:500; margin-top:1px; word-break:break-word; line-height:1.3; }
+  .subtask-actions{ display:flex; gap:2px; flex-shrink:0; opacity:0; transition:opacity 0.15s; }
+  .subtask-item:hover .subtask-actions{ opacity:1; }
+  .subtask-icon-btn{ border:none; background:none; color:var(--ink-soft); font-size:11px; cursor:pointer; padding:1px 4px; transition:color 0.15s; }
+  .subtask-icon-btn:hover{ color: var(--mirtilo); }
   .subtask-progress{ font-size:10px; font-weight:800; color: var(--ink-soft); margin: 4px 0 6px; text-transform:uppercase; letter-spacing:0.3px; }
   .subtask-add-row{ display:flex; gap:6px; margin-top:2px; }
   .subtask-add-row input{ flex:1; font-size:12px; padding:6px 10px; }
   .subtask-add-row .icon-btn{ width:24px; height:24px; font-size:13px; flex-shrink:0; }
+  .subtask-editing{
+    display:flex; flex-direction:column; gap:6px; padding:6px 0 8px;
+    border-bottom:1px dashed var(--slate-soft); margin-bottom:2px;
+  }
+  .subtask-editing input{ font-size:12px; padding:6px 9px; width:100%; }
+  .subtask-edit-actions{ display:flex; gap:6px; }
 
   /* ---------- TASK EDIT FORM ---------- */
   .task-edit-form{ display:block; background:#fff; border:2px solid var(--slate-soft); border-radius: var(--radius-sm); padding:12px; margin-bottom:9px; }
@@ -418,35 +439,63 @@
   .agenda-add{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
   .agenda-add input[type="time"]{ width: 92px; flex-shrink:0; }
   .agenda-add input[type="text"]{ flex:1; min-width: 100px; }
+  .agenda-filter-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .agenda-nav-btn{
+    border:none; background: var(--slate-soft); color: var(--ink-soft); width:32px; height:32px;
+    border-radius:50%; font-size:14px; font-weight:800; cursor:pointer; flex-shrink:0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .agenda-nav-btn:hover{ background: var(--curacau); color:#fff; }
+  .agenda-today-btn{
+    border:none; background: var(--slate-soft); color: var(--ink-soft); font-size:12px; font-weight:800;
+    padding:7px 14px; border-radius:100px; cursor:pointer; flex-shrink:0;
+    transition: background 0.15s, color 0.15s; font-family:'Nunito', sans-serif;
+  }
+  .agenda-today-btn.active{ background: var(--curacau); color:#fff; }
+  .agenda-filter-row input[type="date"]{ flex:1; min-width:110px; }
+  .agenda-filter-label{ font-size:12.5px; font-weight:800; color: var(--mirtilo-deep); margin: 0 0 12px; }
   .agenda-item{ display:flex; gap: 12px; align-items:flex-start; padding: 9px 4px; border-bottom: 1px solid var(--slate-soft); }
   .agenda-item:last-child{ border-bottom:none; }
   .agenda-item.next{ background: linear-gradient(90deg, rgba(28,169,201,0.08), transparent); border-radius: var(--radius-sm); }
   .agenda-time{ font-family:'Baloo 2', sans-serif; font-weight:700; font-size: 14px; color: var(--curacau-deep); flex-shrink:0; min-width: 52px; }
   .agenda-text{ font-size:14px; font-weight:700; flex:1; word-break:break-word; }
+  .agenda-main{ flex:1; min-width:0; }
+  .agenda-details-toggle{
+    border:none; background:none; color: var(--curacau-deep); font-size:10.5px; font-weight:800;
+    cursor:pointer; padding:0; margin-top:4px; font-family:'Nunito', sans-serif; display:block;
+  }
+  .agenda-details-body{ margin-top:6px; padding-top:6px; border-top:1px dashed var(--slate-soft); }
+  .agenda-detail-row{ font-size:11.5px; color: var(--ink-soft); font-weight:600; margin-top:3px; word-break:break-all; }
+  .agenda-detail-row a{ color: var(--curacau-deep); }
   .next-tag{ font-size:9.5px; font-weight:800; color:#fff; background:var(--curacau); padding:2px 7px; border-radius:100px; text-transform:uppercase; margin-left:6px; vertical-align:middle; }
   .del-btn{ border:none; background:none; color: var(--ink-soft); font-size: 16px; cursor:pointer; flex-shrink:0; opacity:0.5; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; }
   .agenda-item:hover .del-btn{ opacity:1; }
   .del-btn:hover{ color: var(--mirtilo); }
-  .ics-btn{
-    border:none; background: var(--slate-soft); color: var(--ink); font-size:12px; font-weight:800;
-    padding:9px 12px; border-radius: var(--radius-sm); cursor:pointer; width:100%; margin-bottom:6px;
-    transition: background 0.2s; font-family:'Nunito', sans-serif;
+  .agenda-toolbar{ display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .agenda-tool-btn{
+    border:none; background: var(--slate-soft); color: var(--ink-soft); width:34px; height:34px;
+    border-radius:50%; font-size:15px; cursor:pointer; flex-shrink:0; position:relative;
+    transition: background 0.2s, color 0.2s; display:flex; align-items:center; justify-content:center;
   }
-  .ics-btn:hover{ background: var(--slate); color:#fff; }
-  .ics-note{ font-size:10.5px; color: var(--ink-soft); font-weight:600; margin: 0 0 14px; line-height:1.4; }
-  .google-btn{
-    border:none; background: var(--curacau); color:#fff; font-size:12px; font-weight:800;
-    padding:9px 12px; border-radius: var(--radius-sm); cursor:pointer; width:100%; margin-bottom:6px;
-    transition: background 0.2s; font-family:'Nunito', sans-serif;
+  .agenda-tool-btn:hover{ background: var(--slate); color:#fff; }
+  .agenda-tool-btn.on{ background: var(--curacau); color:#fff; }
+  .agenda-tool-btn.on::after{
+    content:""; position:absolute; top:-1px; right:-1px; width:9px; height:9px; border-radius:50%;
+    background: var(--good); border:2px solid var(--paper);
   }
-  .google-btn:hover{ background: var(--curacau-deep); }
-  .google-btn.secondary{ background: var(--slate-soft); color: var(--ink-soft); }
-  .google-btn.secondary:hover{ background: var(--slate); color:#fff; }
-  .google-btn.on{ background: var(--good); }
+  .agenda-tool-btn.spinning{ animation: spin 0.8s linear infinite; }
+  @keyframes spin{ from{ transform: rotate(0deg); } to{ transform: rotate(360deg); } }
+  .agenda-help-panel{
+    display:none; font-size:11px; color: var(--ink-soft); font-weight:600; line-height:1.5;
+    margin-bottom:12px; padding:10px 12px; background: var(--bg); border-radius: var(--radius-sm);
+  }
+  .agenda-help-panel.open{ display:block; }
+  .agenda-help-panel strong{ color: var(--ink); }
   .google-tag{
     display:inline-block; background:var(--curacau); color:#fff; font-size:9px; font-weight:800;
     width:14px; height:14px; line-height:14px; text-align:center; border-radius:50%; vertical-align:middle; margin-left:4px;
   }
+  .task-link-tag{ font-size:11px; margin-left:4px; vertical-align:middle; }
   .kanban-add-col-row{ display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap; }
   #addColumnForm{ display:none; gap:8px; align-items:center; }
   #addColumnForm input{ flex:1; min-width:140px; }
@@ -528,6 +577,7 @@
       <br>
       <button class="legend-toggle" id="legendToggle">Como funcionam as emoções do Baymax? <span class="arrow">▾</span></button>
       <button class="notif-toggle" id="notifToggleBtn">🔕 Ativar lembretes</button>
+      <a class="nav-link-btn" href="./agentes.html">🤖 Central de Agentes</a>
       <div class="legend-panel" id="legendPanel"></div>
     </div>
   </header>
@@ -613,16 +663,30 @@
         <svg class="card-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1CA9C9" stroke-width="2.2"/><path d="M12 7v5l3 3" stroke="#1CA9C9" stroke-width="2.2" stroke-linecap="round"/></svg>
         Agenda
       </h2>
-      <p class="card-sub">Compromissos e horários de hoje</p>
+      <p class="card-sub">Organize seus compromissos navegando por dia</p>
+      <div class="agenda-filter-row">
+        <button class="agenda-nav-btn" id="agendaPrevBtn" title="Dia anterior">◀</button>
+        <button class="agenda-today-btn" id="agendaTodayBtn">Hoje</button>
+        <button class="agenda-nav-btn" id="agendaNextBtn" title="Próximo dia">▶</button>
+        <input type="date" id="agendaDateFilter" title="Ir para uma data específica">
+      </div>
+      <div class="agenda-toolbar">
+        <button class="agenda-tool-btn" id="googleConnectBtn" title="Conectar ao Google Agenda">🔗</button>
+        <button class="agenda-tool-btn" id="googleRefreshBtn" title="Atualizar agenda com o Google">🔄</button>
+        <button class="agenda-tool-btn" id="exportIcsBtn" title="Exportar dia selecionado (.ics)">⬇</button>
+        <button class="agenda-tool-btn" id="agendaHelpToggle" title="Como funciona?">ℹ️</button>
+      </div>
+      <div class="agenda-help-panel" id="agendaHelpPanel">
+        <strong>🔗 Conectar</strong> — autoriza o acesso ao seu Google Agenda. Depois de conectado, a agenda se atualiza sozinha a cada 2 minutos, e também na hora sempre que você voltar pra essa aba.<br>
+        <strong>🔄 Atualizar</strong> — força uma sincronização imediata: busca os últimos 7 dias + próximos 7 dias, adiciona o que for novo e corrige o que mudou (horário, participantes, links).<br>
+        <strong>⬇ Exportar</strong> — baixa um arquivo .ics do dia selecionado, pra importar manualmente no Google Agenda (não precisa estar conectado).
+      </div>
+      <p class="agenda-filter-label" id="agendaFilterLabel"></p>
       <div class="agenda-add">
         <input type="time" id="agendaTime">
         <input type="text" id="agendaInput" placeholder="Compromisso...">
         <button class="icon-btn" id="addAgendaBtn" title="Adicionar compromisso">+</button>
       </div>
-      <button class="google-btn" id="googleConnectBtn">🔗 Conectar Google Agenda</button>
-      <button class="google-btn secondary" id="googleImportBtn">📥 Importar agenda de hoje</button>
-      <button class="ics-btn" id="exportIcsBtn">⬇ Exportar compromissos de hoje (.ics)</button>
-      <p class="ics-note">Conectando ao Google, os compromissos de hoje entram automaticamente. Sem conectar, use a exportação .ics para importar manualmente no Google Agenda.</p>
       <ul class="list" id="agendaList"></ul>
     </section>
   </div>
@@ -662,7 +726,10 @@
   let loaded = false;
   let editingNoteId = null;
   let editingTaskId = null;
+  let editingSubtask = null;
   let expandedChecklists = new Set();
+  let expandedAgendaDetails = new Set();
+  let agendaFilterDate = null;
   let lastKnownDate = null;
   let taskSortMode = 'complexity';
   let notificationsEnabled = false;
@@ -670,7 +737,10 @@
 
   const $ = (id) => document.getElementById(id);
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-  const todayStr = () => new Date().toISOString().slice(0,10);
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   const COMPLEXITY_WEIGHT = { simples: 1, moderada: 2, complexa: 3, muitocomplexa: 4 };
@@ -699,6 +769,26 @@
     if(mt.unit === 'dias') return `${mt.value} ${mt.value == 1 ? 'dia' : 'dias'}`;
     return `${mt.value} min`;
   }
+  function maxTimeToMinutes(mt){
+    if(!mt || !mt.value) return null;
+    if(mt.unit === 'h') return mt.value * 60;
+    if(mt.unit === 'dias') return mt.value * 24 * 60;
+    return mt.value;
+  }
+  function addMinutesToTime(timeStr, minutes){
+    const [h, m] = timeStr.split(':').map(Number);
+    const total = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
+    return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+  }
+  function buildGoogleDescription(t){
+    let desc = t.description || '';
+    const subtasks = t.subtasks || [];
+    if(subtasks.length > 0){
+      const checklistText = subtasks.map(s => `${s.done ? '☑' : '☐'} ${s.text}`).join('\n');
+      desc = (desc ? desc + '\n\n' : '') + 'Checklist:\n' + checklistText;
+    }
+    return desc;
+  }
 
   async function loadData(){
     try{
@@ -718,6 +808,7 @@
           if(t.date === undefined) t.date = today;
           if(t.recurringId === undefined) t.recurringId = null;
           if(t.subtasks === undefined) t.subtasks = [];
+          t.subtasks.forEach(s => { if(s.description === undefined) s.description = ''; });
           if(t.time === undefined) t.time = null;
           if(t.status === undefined) t.status = t.done ? 'done' : 'pending';
           if(t.doneDate === undefined) t.doneDate = t.status === 'done' ? (t.created || Date.now()) : null;
@@ -730,7 +821,14 @@
         if(!state.kanbanColumns || !Array.isArray(state.kanbanColumns) || state.kanbanColumns.length === 0){
           state.kanbanColumns = JSON.parse(JSON.stringify(DEFAULT_KANBAN_COLUMNS));
         }
-        state.agenda.forEach(a => { if(a.fromGoogle === undefined) a.fromGoogle = false; });
+        state.agenda.forEach(a => {
+          if(a.fromGoogle === undefined) a.fromGoogle = false;
+          if(a.emails === undefined) a.emails = [];
+          if(a.links === undefined) a.links = [];
+          if(a.location === undefined) a.location = '';
+          if(a.linkedTaskId === undefined) a.linkedTaskId = null;
+          if(a.date === undefined) a.date = today;
+        });
       }
     }catch(e){
       console.error('Erro ao carregar dados do Baymax:', e);
@@ -904,7 +1002,8 @@
     const t = state.tasks.find(x => x.id === taskId);
     if(!t) return;
     t.subtasks = t.subtasks || [];
-    t.subtasks.push({ id: uid(), text, done: false });
+    t.subtasks.push({ id: uid(), text, description: '', done: false });
+    input.value = '';
     saveData();
     renderKanban();
   }
@@ -918,6 +1017,32 @@
     const t = state.tasks.find(x => x.id === taskId);
     if(!t) return;
     t.subtasks = (t.subtasks || []).filter(x => x.id !== subId);
+    saveData();
+    renderKanban();
+  }
+  function editSubtask(taskId, subId){
+    editingSubtask = { taskId, subId };
+    renderKanban();
+    const el = $('subtaskEditText-' + taskId + '-' + subId);
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
+  function cancelEditSubtask(){
+    editingSubtask = null;
+    renderKanban();
+  }
+  function saveSubtaskEdit(taskId, subId){
+    const t = state.tasks.find(x => x.id === taskId);
+    if(!t) return;
+    const s = (t.subtasks || []).find(x => x.id === subId);
+    if(!s) return;
+    const textEl = $('subtaskEditText-' + taskId + '-' + subId);
+    const descEl = $('subtaskEditDesc-' + taskId + '-' + subId);
+    if(!textEl) return;
+    const val = textEl.value.trim();
+    if(!val) return;
+    s.text = val;
+    s.description = descEl ? descEl.value.trim() : '';
+    editingSubtask = null;
     saveData();
     renderKanban();
   }
@@ -956,6 +1081,37 @@
   function kanbanCardHtml(t, status){
     return editingTaskId === t.id ? taskEditFormHtml(t) : kanbanCardViewHtml(t, status);
   }
+  function subtaskItemHtml(taskId, s){
+    const isEditing = editingSubtask && editingSubtask.taskId === taskId && editingSubtask.subId === s.id;
+    if(isEditing){
+      return `
+        <div class="subtask-editing">
+          <input type="text" id="subtaskEditText-${taskId}-${s.id}" value="${escapeHtml(s.text)}" maxlength="120" placeholder="Item da checklist">
+          <input type="text" id="subtaskEditDesc-${taskId}-${s.id}" value="${escapeHtml(s.description || '')}" maxlength="200" placeholder="Descrição (opcional)">
+          <div class="subtask-edit-actions">
+            <button class="mini-btn save" data-task-id="${taskId}" data-sub-id="${s.id}" data-action="save-subtask">Salvar</button>
+            <button class="mini-btn cancel" data-action="cancel-edit-subtask">Cancelar</button>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="subtask-item">
+        <div class="subtask-checkbox ${s.done ? 'checked' : ''}" data-action="toggle-subtask" data-task-id="${taskId}" data-sub-id="${s.id}">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="subtask-main">
+          <div class="subtask-text ${s.done ? 'done' : ''}">${escapeHtml(s.text)}</div>
+          ${s.description ? `<div class="subtask-desc">${escapeHtml(s.description)}</div>` : ''}
+        </div>
+        <div class="subtask-actions">
+          <button class="subtask-icon-btn" data-action="edit-subtask" data-task-id="${taskId}" data-sub-id="${s.id}" title="Editar item">✎</button>
+          <button class="subtask-icon-btn" data-action="delete-subtask" data-task-id="${taskId}" data-sub-id="${s.id}" title="Excluir item">✕</button>
+        </div>
+      </div>
+    `;
+  }
+
   function kanbanCardViewHtml(t, status){
     const today = todayStr();
     const overdue = status !== 'done' && t.date < today;
@@ -978,7 +1134,7 @@
         ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
         <div class="task-meta">
           <span class="badge ${t.complexity}">${COMPLEXITY_LABEL[t.complexity]}</span>
-          ${t.time ? `<span class="badge scheduled">🕒 ${t.time}</span>` : ''}
+          ${t.time ? `<span class="badge scheduled">🕒 ${t.time}${maxTimeToMinutes(t.maxTime) ? '–' + addMinutesToTime(t.time, maxTimeToMinutes(t.maxTime)) : ''}</span>` : ''}
           ${t.maxTime ? `<span class="badge time">⏱ ${formatMaxTime(t.maxTime)}</span>` : ''}
           ${overdue ? '<span class="badge overdue">Atrasada</span>' : ''}
         </div>
@@ -988,15 +1144,7 @@
           </button>
           <div class="checklist-body" style="display:${isOpen ? 'block' : 'none'};">
             ${subtasks.length > 0 ? `
-            <div class="subtask-list">${subtasks.map(s => `
-              <div class="subtask-item">
-                <div class="subtask-checkbox ${s.done ? 'checked' : ''}" data-action="toggle-subtask" data-task-id="${t.id}" data-sub-id="${s.id}">
-                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </div>
-                <div class="subtask-text ${s.done ? 'done' : ''}">${escapeHtml(s.text)}</div>
-                <button class="subtask-del" data-action="delete-subtask" data-task-id="${t.id}" data-sub-id="${s.id}" title="Excluir item">✕</button>
-              </div>
-            `).join('')}</div>
+            <div class="subtask-list">${subtasks.map(s => subtaskItemHtml(t.id, s)).join('')}</div>
             <div class="subtask-progress">${doneCount}/${subtasks.length} concluídos</div>` : ''}
             <div class="subtask-add-row">
               <input type="text" class="subtask-input" id="subtaskInput-${t.id}" placeholder="Adicionar item..." maxlength="120">
@@ -1034,8 +1182,9 @@
   function renderKanbanSkeleton(){
     const board = $('kanbanBoard');
     board.innerHTML = state.kanbanColumns.map(c => `
-      <div class="kanban-col">
-        <div class="kanban-col-header">
+      <div class="kanban-col" data-col-id="${c.id}">
+        <div class="kanban-col-header" draggable="true" title="Arraste para reordenar as etapas">
+          <span class="kanban-drag-handle">⠿</span>
           <span class="kanban-dot ${c.dot}"></span>${escapeHtml(c.label)}
           <span class="kanban-count" id="count-${c.id}">0</span>
           ${(c.id !== 'pending' && c.id !== 'inprogress' && c.id !== 'done') ? `<button class="kanban-col-del" data-col-id="${c.id}" data-action="delete-column" title="Remover etapa">✕</button>` : ''}
@@ -1209,13 +1358,31 @@
   }
 
   // ---------- AGENDA ----------
+  function addDaysToDateStr(dateStr, days){
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function formatAgendaDayLabel(dateStr){
+    const today = todayStr();
+    if(dateStr === today) return 'Hoje';
+    if(dateStr === addDaysToDateStr(today, 1)) return 'Amanhã';
+    if(dateStr === addDaysToDateStr(today, -1)) return 'Ontem';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  }
+  function setAgendaFilterDate(dateStr){
+    agendaFilterDate = dateStr;
+    $('agendaDateFilter').value = dateStr;
+    renderAgenda();
+  }
   function addAgenda(){
     const timeInput = $('agendaTime');
     const textInput = $('agendaInput');
     const text = textInput.value.trim();
     const time = timeInput.value || '00:00';
     if(!text) return;
-    state.agenda.push({ id: uid(), text, time });
+    state.agenda.push({ id: uid(), text, time, date: agendaFilterDate, fromGoogle: false, linkedTaskId: null, emails: [], links: [] });
     textInput.value = '';
     saveData();
     renderAll();
@@ -1226,9 +1393,11 @@
     renderAll();
   }
   function getNextAgendaItem(){
+    const today = todayStr();
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const sorted = [...state.agenda].sort((a,b) => a.time.localeCompare(b.time));
+    const todays = state.agenda.filter(a => (a.date || today) === today);
+    const sorted = [...todays].sort((a,b) => a.time.localeCompare(b.time));
     return sorted.find(a => {
       const [h,m] = a.time.split(':').map(Number);
       return (h*60+m) >= nowMinutes;
@@ -1236,20 +1405,47 @@
   }
   function renderAgenda(){
     const list = $('agendaList');
-    if(state.agenda.length === 0){
-      list.innerHTML = '<div class="empty-state">Nenhum compromisso hoje.<br>Adicione um horário acima.</div>';
+    const today = todayStr();
+    const isToday = agendaFilterDate === today;
+    $('agendaFilterLabel').textContent = 'Compromissos de ' + formatAgendaDayLabel(agendaFilterDate) +
+      (isToday ? '' : ` (${new Date(agendaFilterDate + 'T00:00:00').toLocaleDateString('pt-BR')})`);
+    $('agendaTodayBtn').classList.toggle('active', isToday);
+
+    const dayItems = state.agenda.filter(a => (a.date || today) === agendaFilterDate);
+    if(dayItems.length === 0){
+      const emptyMsg = agendaFilterDate < today ? 'Nenhum compromisso registrado nesse dia.' : 'Nenhum compromisso agendado.<br>Adicione um horário acima.';
+      list.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
       return;
     }
     const next = getNextAgendaItem();
-    const sorted = [...state.agenda].sort((a,b) => a.time.localeCompare(b.time));
-    list.innerHTML = sorted.map(a => `
-      <li class="agenda-item ${next && a.id === next.id ? 'next' : ''}">
+    const sorted = [...dayItems].sort((a,b) => a.time.localeCompare(b.time));
+    list.innerHTML = sorted.map(a => {
+      const emails = a.emails || [];
+      const links = a.links || [];
+      const hasDetails = emails.length > 0 || links.length > 0;
+      const isOpen = expandedAgendaDetails.has(a.id);
+      const isNext = isToday && next && a.id === next.id;
+      return `
+      <li class="agenda-item ${isNext ? 'next' : ''}">
         <div class="agenda-time">${a.time}</div>
-        <div class="agenda-text">${escapeHtml(a.text)}${a.fromGoogle ? '<span class="google-tag" title="Importado do Google Agenda">G</span>' : ''}${next && a.id === next.id ? '<span class="next-tag">Próximo</span>' : ''}</div>
+        <div class="agenda-main">
+          <div class="agenda-text">${escapeHtml(a.text)}${a.fromGoogle ? '<span class="google-tag" title="Importado do Google Agenda">G</span>' : ''}${a.linkedTaskId ? '<span class="task-link-tag" title="Horário bloqueado por uma tarefa">🔗</span>' : ''}${isNext ? '<span class="next-tag">Próximo</span>' : ''}</div>
+          ${hasDetails ? `<button class="agenda-details-toggle" data-action="toggle-agenda-details" data-id="${a.id}">${isOpen ? '▾' : '▸'} Detalhes (${emails.length ? emails.length + ' e-mail' + (emails.length>1?'s':'') : ''}${emails.length && links.length ? ', ' : ''}${links.length ? links.length + ' link' + (links.length>1?'s':'') : ''})</button>` : ''}
+          ${isOpen ? `<div class="agenda-details-body">
+            ${emails.length ? `<div class="agenda-detail-row">✉️ ${emails.map(e => escapeHtml(e)).join(', ')}</div>` : ''}
+            ${links.map(l => `<div class="agenda-detail-row">🔗 <a href="${escapeHtml(l)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l)}</a></div>`).join('')}
+          </div>` : ''}
+        </div>
         <button class="del-btn" data-id="${a.id}" data-action="create-task-from-agenda" title="Criar tarefa a partir deste compromisso">➕</button>
         <button class="del-btn" data-id="${a.id}" data-action="delete-agenda" title="Excluir">✕</button>
       </li>
-    `).join('');
+    `;
+    }).join('');
+  }
+  function toggleAgendaDetails(id){
+    if(expandedAgendaDetails.has(id)) expandedAgendaDetails.delete(id);
+    else expandedAgendaDetails.add(id);
+    renderAgenda();
   }
   function downloadFile(filename, content, mime){
     const blob = new Blob([content], { type: mime });
@@ -1260,10 +1456,12 @@
     URL.revokeObjectURL(url);
   }
   function exportICS(){
-    if(state.agenda.length === 0){ alert('Nenhum compromisso para exportar hoje.'); return; }
-    const dateStr = todayStr().replace(/-/g, '');
+    const today = todayStr();
+    const dayItems = state.agenda.filter(a => (a.date || today) === agendaFilterDate);
+    if(dayItems.length === 0){ alert('Nenhum compromisso para exportar nesse dia.'); return; }
+    const dateStr = agendaFilterDate.replace(/-/g, '');
     let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Baymax//Agenda//PT-BR\r\nCALSCALE:GREGORIAN\r\n';
-    state.agenda.forEach(a => {
+    dayItems.forEach(a => {
       const [h, m] = a.time.split(':').map(Number);
       const startMinutes = h * 60 + m;
       const endMinutes = startMinutes + 30;
@@ -1279,16 +1477,20 @@
       ics += 'END:VEVENT\r\n';
     });
     ics += 'END:VCALENDAR\r\n';
-    downloadFile('baymax-agenda.ics', ics, 'text/calendar');
+    downloadFile(`baymax-agenda-${agendaFilterDate}.ics`, ics, 'text/calendar');
   }
 
   // ---------- GOOGLE CALENDAR ----------
   // Preencha com o Client ID gerado no seu próprio Google Cloud Console.
   // Veja o guia "como-conectar-google-agenda.md" para o passo a passo.
-  const GOOGLE_CLIENT_ID = 'COLE_SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = '956727332508-fclqagifpiq1vkgr0gps5ivqnec4nfld.apps.googleusercontent.com';
 
   let googleAccessToken = null;
   let googleTokenClient = null;
+  let googleAutoSyncTimer = null;
+  let autoRefreshInProgress = false;
+  let lastGoogleSyncAt = 0;
+  const GOOGLE_AUTO_SYNC_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos — o mais próximo de "tempo real" possível sem servidor
 
   function isGoogleConfigured(){
     return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('COLE_SEU_CLIENT_ID_AQUI');
@@ -1300,14 +1502,23 @@
       client_id: GOOGLE_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/calendar.events',
       callback: (resp) => {
+        const wasAutoRefresh = autoRefreshInProgress;
+        autoRefreshInProgress = false;
         if(resp.error){
-          alert('Não foi possível conectar ao Google Agenda: ' + resp.error);
+          if(wasAutoRefresh){
+            showToast({ text: '⚠️ Não consegui renovar a conexão com o Google automaticamente. Toque em 🔗 para reconectar.' });
+          } else {
+            alert('Não foi possível conectar ao Google Agenda: ' + resp.error);
+          }
           return;
         }
         googleAccessToken = resp.access_token;
         updateGoogleButton();
-        showToast({ text: 'Conectado ao Google Agenda! Importando os compromissos de hoje...' });
-        importGoogleAgendaToday();
+        if(!wasAutoRefresh){
+          showToast({ text: 'Conectado ao Google Agenda! Sincronizando os últimos 7 dias e próximos 7 dias...' });
+          startGoogleAutoSync();
+        }
+        syncGoogleAgenda(wasAutoRefresh);
       }
     });
     return true;
@@ -1324,43 +1535,109 @@
     if(!googleTokenClient) initGoogleAuth();
     if(googleTokenClient) googleTokenClient.requestAccessToken();
   }
+  function startGoogleAutoSync(){
+    if(googleAutoSyncTimer) clearInterval(googleAutoSyncTimer);
+    googleAutoSyncTimer = setInterval(() => {
+      syncGoogleAgenda(true);
+    }, GOOGLE_AUTO_SYNC_INTERVAL_MS);
+  }
+  function syncOnReturnToTab(){
+    if(!googleAccessToken) return;
+    // evita sincronizar de novo se já rodou há menos de 30s (ex: alt-tab rápido)
+    if(Date.now() - lastGoogleSyncAt < 30000) return;
+    syncGoogleAgenda(true);
+  }
   function updateGoogleButton(){
     const btn = $('googleConnectBtn');
     if(!btn) return;
-    if(googleAccessToken){ btn.textContent = '🔗 Google Agenda conectado'; btn.classList.add('on'); }
-    else { btn.textContent = '🔗 Conectar Google Agenda'; btn.classList.remove('on'); }
+    if(googleAccessToken){ btn.classList.add('on'); btn.title = 'Google Agenda conectado — sincroniza a cada 2 min'; }
+    else { btn.classList.remove('on'); btn.title = 'Conectar ao Google Agenda'; }
   }
-  async function importGoogleAgendaToday(){
+  async function syncGoogleAgenda(silent){
     if(!googleAccessToken){
-      connectGoogleCalendar();
+      if(!silent) connectGoogleCalendar();
       return;
     }
-    const today = todayStr();
+    lastGoogleSyncAt = Date.now();
+    const refreshBtn = $('googleRefreshBtn');
+    if(refreshBtn) refreshBtn.classList.add('spinning');
+    const now = new Date();
+    const startOfWindow = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0);
+    const endOfWindow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59);
     try{
-      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${today}T00:00:00Z&timeMax=${today}T23:59:59Z&singleEvents=true&orderBy=startTime`, {
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(startOfWindow.toISOString())}&timeMax=${encodeURIComponent(endOfWindow.toISOString())}&singleEvents=true&orderBy=startTime&maxResults=250`, {
         headers: { Authorization: `Bearer ${googleAccessToken}` }
       });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok){
+        const errText = await res.text().catch(() => '');
+        throw new Error('HTTP ' + res.status + ' — ' + errText.slice(0, 200));
+      }
       const data = await res.json();
-      let imported = 0;
+      let added = 0;
+      let updated = 0;
+      const urlRegex = /(https?:\/\/[^\s<>")]+)/g;
       (data.items || []).forEach(ev => {
         if(!ev.start) return;
         let time = '00:00';
+        let eventDate = todayStr();
         if(ev.start.dateTime){
           const d = new Date(ev.start.dateTime);
           time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          eventDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        } else if(ev.start.date){
+          eventDate = ev.start.date;
+          time = '00:00';
         }
-        const already = state.agenda.some(a => a.googleEventId === ev.id);
-        if(already) return;
-        state.agenda.push({ id: uid(), text: ev.summary || '(sem título)', time, fromGoogle: true, googleEventId: ev.id });
-        imported++;
+
+        const emails = (ev.attendees || []).map(p => p.email).filter(Boolean);
+        const linkSet = new Set();
+        if(ev.hangoutLink) linkSet.add(ev.hangoutLink);
+        [ev.description, ev.location].forEach(txt => {
+          if(!txt) return;
+          const matches = txt.match(urlRegex);
+          if(matches) matches.forEach(u => linkSet.add(u.replace(/[.,;]+$/, '')));
+        });
+
+        const existing = state.agenda.find(a => a.googleEventId === ev.id);
+        if(existing){
+          existing.text = ev.summary || '(sem título)';
+          existing.time = time;
+          existing.date = eventDate;
+          existing.emails = emails;
+          existing.links = Array.from(linkSet);
+          existing.location = ev.location || '';
+          updated++;
+        } else {
+          state.agenda.push({
+            id: uid(), text: ev.summary || '(sem título)', time, date: eventDate, fromGoogle: true, googleEventId: ev.id,
+            linkedTaskId: null, emails, links: Array.from(linkSet), location: ev.location || ''
+          });
+          added++;
+        }
       });
       saveData();
       renderAgenda();
-      showToast({ text: imported > 0 ? `${imported} evento(s) importado(s) do Google Agenda!` : 'Nenhum evento novo encontrado para hoje.' });
+      const parts = [];
+      if(added > 0) parts.push(`${added} novo(s)`);
+      if(updated > 0) parts.push(`${updated} atualizado(s)`);
+      if(parts.length > 0){
+        showToast({ text: `Agenda sincronizada: ${parts.join(', ')}!` });
+      } else if(!silent){
+        showToast({ text: 'Agenda já estava em dia — nada novo para sincronizar.' });
+      }
     }catch(e){
       console.error(e);
-      alert('Erro ao importar do Google Agenda. Verifique se a Calendar API está ativada no seu projeto do Google Cloud.');
+      if(String(e.message).includes('HTTP 401') && googleTokenClient){
+        // token expirou: tenta renovar em segundo plano; a sincronização se repete sozinha no callback
+        autoRefreshInProgress = true;
+        googleTokenClient.requestAccessToken({ prompt: '' });
+      } else if(silent){
+        showToast({ text: '⚠️ A sincronização automática falhou. Toque em 🔄 para tentar de novo.' });
+      } else {
+        alert('Erro ao atualizar a agenda: ' + e.message + '\n\nVerifique se a Calendar API está ativada no seu projeto do Google Cloud e se você está entre os "Test users" configurados.');
+      }
+    }finally{
+      if(refreshBtn) refreshBtn.classList.remove('spinning');
     }
   }
   async function sendTaskToGoogleCalendar(taskId){
@@ -1372,37 +1649,49 @@
     if(!t) return;
     const date = t.date || todayStr();
     const time = t.time || '09:00';
+    const durationMinutes = maxTimeToMinutes(t.maxTime) || 30;
     const [h, m] = time.split(':').map(Number);
     const startDate = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
-    const endDate = new Date(startDate.getTime() + 30 * 60000);
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
     try{
       const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
         method: 'POST',
         headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           summary: t.text,
-          description: t.description || '',
+          description: buildGoogleDescription(t),
           start: { dateTime: startDate.toISOString() },
           end: { dateTime: endDate.toISOString() }
         })
       });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok){
+        const errText = await res.text().catch(() => '');
+        throw new Error('HTTP ' + res.status + ' — ' + errText.slice(0, 200));
+      }
       const data = await res.json();
       t.googleEventId = data.id;
+      const alreadyLinked = state.agenda.some(a => a.linkedTaskId === t.id);
+      if(!alreadyLinked){
+        state.agenda.push({ id: uid(), text: t.text, time, date, fromGoogle: false, linkedTaskId: t.id, emails: [], links: [] });
+      }
       saveData();
-      showToast({ text: 'Tarefa enviada para o Google Agenda!' });
+      renderAgenda();
+      showToast({ text: `Tarefa enviada! Bloqueado ${formatMaxTime(t.maxTime) || '30 min'} na sua agenda.` });
       renderKanban();
     }catch(e){
       console.error(e);
-      alert('Erro ao enviar para o Google Agenda.');
+      alert('Erro ao enviar para o Google Agenda: ' + e.message);
     }
   }
   function createTaskFromAgenda(agendaId){
     const a = state.agenda.find(x => x.id === agendaId);
     if(!a) return;
+    let desc = a.fromGoogle ? 'Importado do Google Agenda' : '';
+    if(a.emails && a.emails.length) desc += (desc ? '\n' : '') + 'Participantes: ' + a.emails.join(', ');
+    if(a.links && a.links.length) desc += (desc ? '\n' : '') + 'Links: ' + a.links.join(', ');
     state.tasks.unshift({
-      id: uid(), text: a.text, description: a.fromGoogle ? 'Importado do Google Agenda' : '', complexity: 'moderada',
-      maxTime: null, time: a.time, status: 'pending', doneDate: null, date: todayStr(),
+      id: uid(), text: a.text, description: desc, complexity: 'moderada',
+      maxTime: null, time: a.time, status: 'pending', doneDate: null, date: a.date || todayStr(),
       recurringId: null, created: Date.now(), subtasks: []
     });
     saveData();
@@ -1646,8 +1935,13 @@
   $('addAgendaBtn').addEventListener('click', addAgenda);
   $('agendaInput').addEventListener('keydown', e => { if(e.key === 'Enter') addAgenda(); });
   $('exportIcsBtn').addEventListener('click', exportICS);
+  $('agendaPrevBtn').addEventListener('click', () => setAgendaFilterDate(addDaysToDateStr(agendaFilterDate, -1)));
+  $('agendaNextBtn').addEventListener('click', () => setAgendaFilterDate(addDaysToDateStr(agendaFilterDate, 1)));
+  $('agendaTodayBtn').addEventListener('click', () => setAgendaFilterDate(todayStr()));
+  $('agendaDateFilter').addEventListener('change', () => setAgendaFilterDate($('agendaDateFilter').value || todayStr()));
   $('googleConnectBtn').addEventListener('click', connectGoogleCalendar);
-  $('googleImportBtn').addEventListener('click', importGoogleAgendaToday);
+  $('googleRefreshBtn').addEventListener('click', () => syncGoogleAgenda(false));
+  $('agendaHelpToggle').addEventListener('click', () => { $('agendaHelpPanel').classList.toggle('open'); });
   $('addColumnToggleBtn').addEventListener('click', () => {
     const form = $('addColumnForm');
     const isHidden = form.style.display === 'none' || form.style.display === '';
@@ -1702,9 +1996,13 @@
     if(action === 'toggle-subtask') toggleSubtask(taskId, subId);
     if(action === 'delete-subtask') deleteSubtask(taskId, subId);
     if(action === 'add-subtask') addSubtask(taskId);
+    if(action === 'edit-subtask') editSubtask(taskId, subId);
+    if(action === 'save-subtask') saveSubtaskEdit(taskId, subId);
+    if(action === 'cancel-edit-subtask') cancelEditSubtask();
     if(action === 'toggle-checklist') toggleChecklist(taskId);
     if(action === 'send-google') sendTaskToGoogleCalendar(id);
     if(action === 'create-task-from-agenda') createTaskFromAgenda(id);
+    if(action === 'toggle-agenda-details') toggleAgendaDetails(id);
     if(action === 'delete-column') deleteColumn(el.getAttribute('data-col-id'));
   });
 
@@ -1720,8 +2018,28 @@
     }
   });
 
-  // drag & drop between kanban columns
+  // drag & drop: cards between columns, and columns to reorder
+  function reorderColumn(draggedColId, targetColId){
+    if(draggedColId === targetColId) return;
+    const fromIndex = state.kanbanColumns.findIndex(c => c.id === draggedColId);
+    const toIndex = state.kanbanColumns.findIndex(c => c.id === targetColId);
+    if(fromIndex === -1 || toIndex === -1) return;
+    const [moved] = state.kanbanColumns.splice(fromIndex, 1);
+    state.kanbanColumns.splice(toIndex, 0, moved);
+    saveData();
+    renderKanbanSkeleton();
+    renderKanban();
+  }
+
   document.addEventListener('dragstart', e => {
+    const header = e.target.closest('.kanban-col-header');
+    if(header){
+      const col = header.closest('.kanban-col');
+      e.dataTransfer.setData('application/x-kanban-column', col.getAttribute('data-col-id'));
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => col.classList.add('col-dragging'), 0);
+      return;
+    }
     const card = e.target.closest('.kanban-card');
     if(!card) return;
     e.dataTransfer.setData('text/plain', card.dataset.id);
@@ -1731,22 +2049,43 @@
   document.addEventListener('dragend', e => {
     const card = e.target.closest('.kanban-card');
     if(card) card.classList.remove('dragging');
+    document.querySelectorAll('.kanban-col.col-dragging').forEach(c => c.classList.remove('col-dragging'));
+    document.querySelectorAll('.kanban-col.col-drag-over').forEach(c => c.classList.remove('col-drag-over'));
   });
   document.addEventListener('dragover', e => {
-    const col = e.target.closest('.kanban-col-body');
-    if(col){ e.preventDefault(); col.classList.add('drag-over'); }
+    const isColumnDrag = e.dataTransfer.types.includes('application/x-kanban-column');
+    if(isColumnDrag){
+      const col = e.target.closest('.kanban-col');
+      if(col){ e.preventDefault(); col.classList.add('col-drag-over'); }
+      return;
+    }
+    const colBody = e.target.closest('.kanban-col-body');
+    if(colBody){ e.preventDefault(); colBody.classList.add('drag-over'); }
   });
   document.addEventListener('dragleave', e => {
-    const col = e.target.closest('.kanban-col-body');
-    if(col) col.classList.remove('drag-over');
+    const col = e.target.closest('.kanban-col');
+    if(col) col.classList.remove('col-drag-over');
+    const colBody = e.target.closest('.kanban-col-body');
+    if(colBody) colBody.classList.remove('drag-over');
   });
   document.addEventListener('drop', e => {
-    const col = e.target.closest('.kanban-col-body');
-    if(!col) return;
+    const isColumnDrag = e.dataTransfer.types.includes('application/x-kanban-column');
+    if(isColumnDrag){
+      const col = e.target.closest('.kanban-col');
+      if(!col) return;
+      e.preventDefault();
+      col.classList.remove('col-drag-over');
+      const draggedColId = e.dataTransfer.getData('application/x-kanban-column');
+      const targetColId = col.getAttribute('data-col-id');
+      reorderColumn(draggedColId, targetColId);
+      return;
+    }
+    const colBody = e.target.closest('.kanban-col-body');
+    if(!colBody) return;
     e.preventDefault();
-    col.classList.remove('drag-over');
+    colBody.classList.remove('drag-over');
     const taskId = e.dataTransfer.getData('text/plain');
-    const status = col.getAttribute('data-status');
+    const status = colBody.getAttribute('data-status');
     if(taskId && status) setTaskStatus(taskId, status);
   });
 
@@ -1763,6 +2102,7 @@
   setInterval(() => {
     const nowDate = todayStr();
     if(nowDate !== lastKnownDate){
+      if(agendaFilterDate === lastKnownDate) setAgendaFilterDate(nowDate);
       lastKnownDate = nowDate;
       notifiedTasks.clear();
       ensureTodayRecurringInstances();
@@ -1778,6 +2118,8 @@
 
   // init date field default
   $('taskDate').value = todayStr();
+  agendaFilterDate = todayStr();
+  $('agendaDateFilter').value = agendaFilterDate;
 
   // sync notification button with existing browser permission
   if('Notification' in window && Notification.permission === 'granted'){
@@ -1792,6 +2134,10 @@
     });
   }
   window.addEventListener('load', () => { setTimeout(initGoogleAuth, 500); });
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') syncOnReturnToTab();
+  });
+  window.addEventListener('focus', syncOnReturnToTab);
 
   loadData();
 })();
